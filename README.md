@@ -10,6 +10,7 @@ Userscripts for different websites. Install [Tampermonkey](https://www.tampermon
 | Mouse Wheel Moves | Steps through the moves in analysis with the mouse wheel over the board, like on Lichess | [Install](https://raw.githubusercontent.com/Complaex/tampermonkey-scripts/main/chesscom-mouse-wheel-moves.user.js) |
 | Variation Overlay | Shows the board overlay in game analysis whenever the current move is not part of the actual game | [Install](https://raw.githubusercontent.com/Complaex/tampermonkey-scripts/main/chesscom-variation-overlay.user.js) |
 | Second Best Arrow | Shows an arrow for the engine's second best move that gets thinner and more transparent the worse the move is | [Install](https://raw.githubusercontent.com/Complaex/tampermonkey-scripts/main/chesscom-second-best-arrow.user.js) |
+| Move Time | Shows how long the current move took next to the clock of the player who made it in game analysis | [Install](https://raw.githubusercontent.com/Complaex/tampermonkey-scripts/main/chesscom-move-time.user.js) |
 
 Tampermonkey checks these links for new versions and updates the scripts by itself.
 
