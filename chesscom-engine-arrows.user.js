@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chess.com Engine Arrows
 // @namespace    chesscom-engine-arrows
-// @version      1.3
+// @version      1.4
 // @description  Shows the best move arrow in analysis as soon as the engine has a first result and adds an arrow for the second best move that gets thinner and more transparent the worse the move is, like on Lichess. Both can be switched on and off at the end of their engine lines.
 // @match        https://www.chess.com/analysis*
 // @match        https://www.chess.com/*/analysis*
@@ -17,9 +17,11 @@
 
   const STORAGE_KEY = 'kf-engine-arrows';
 
-  // chess.com's own arrow color. Its arrow for the same move has the same key,
+  // chess.com's own arrow color and tags. Its arrow for the same move has the same key,
   // so both end up as one arrow instead of two on top of each other.
   const BEST_ARROW_COLOR = 'rgba(72, 193, 249, 0.8)';
+  const SUGGESTION_TAG = 'analysis-suggestion-arrow';
+  const SUGGESTION_TAGS = ['analysis-markings', SUGGESTION_TAG];
   const SECOND_ARROW_COLOR = '#4a4a4a';
 
   // The second arrow is at its strongest if both moves are equally good and at its
@@ -88,7 +90,6 @@
   const bestSwitch = createSwitch('1', 'instantBest', 'kf-arrow-switch-best', 'Show best move arrow instantly');
   const secondSwitch = createSwitch('2', 'secondBest', 'kf-arrow-switch-second', 'Show second best move arrow');
 
-  let drawnBestKey = null;
   let drawnSecondKey = '';
 
   function loadOptions() {
@@ -252,25 +253,32 @@
   }
 
   function updateBestArrow(game, lines) {
-    const enabled = options.instantBest && suggestionArrowEnabled();
-    const move = enabled ? lineMove(game, lines[0]) : null;
-    const key = move ? `${move.from}${move.to}` : null;
-    const arrows = game.getMarkings().arrow || {};
+    if (!options.instantBest) return;
 
-    // The color check keeps arrows the user has drawn on the same squares.
-    const drawn = drawnBestKey && arrows[drawnBestKey];
-    if (drawn && drawnBestKey !== key && drawn.color === BEST_ARROW_COLOR) {
-      game.markings.removeOne(`arrow|${drawnBestKey}`);
+    const enabled = suggestionArrowEnabled();
+    const move = enabled ? lineMove(game, lines[0]) : null;
+
+    // Without engine lines (still loading, for example) chess.com's arrow stays as it is.
+    if (enabled && !move) return;
+
+    const key = move ? `arrow|${move.from}${move.to}` : null;
+    const markings = game.markings.getAll();
+
+    // chess.com's own arrow lags behind and can show up for a move that is no longer the best.
+    // The tag keeps arrows the user has drawn, even in the same color.
+    for (const marking of markings) {
+      if (marking.key !== key && marking.tags && marking.tags.includes(SUGGESTION_TAG)) {
+        game.markings.removeOne(marking.key);
+      }
     }
 
-    if (move && !arrows[key]) {
+    if (move && !markings.some((marking) => marking.key === key)) {
       game.markings.addOne({
         type: 'arrow',
         data: { from: move.from, to: move.to, color: BEST_ARROW_COLOR },
+        tags: SUGGESTION_TAGS,
       });
     }
-
-    drawnBestKey = key;
   }
 
   function updateSecondArrow(board, game, lines) {
