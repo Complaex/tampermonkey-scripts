@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Chess.com Engine Arrows
 // @namespace    chesscom-engine-arrows
-// @version      1.2
-// @description  Shows the best move arrow in analysis as soon as the engine has a first result and adds an arrow for the second best move that gets thinner and more transparent the worse the move is, like on Lichess. Both can be switched on and off next to the engine settings.
+// @version      1.3
+// @description  Shows the best move arrow in analysis as soon as the engine has a first result and adds an arrow for the second best move that gets thinner and more transparent the worse the move is, like on Lichess. Both can be switched on and off at the end of their engine lines.
 // @match        https://www.chess.com/analysis*
 // @match        https://www.chess.com/*/analysis*
 // @run-at       document-idle
@@ -49,15 +49,19 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    .kf-arrow-switches {
-      display: flex;
-      flex-shrink: 0;
-      gap: 2px;
-      margin-left: 0.8rem;
+    /* The class is doubled to win against chess.com's own padding. */
+    .engine-line-component.engine-line-component.engine-line-withicon {
+      padding-right: 5.2rem;
+    }
+    .engine-line-component .engine-line-more {
+      right: 2.4rem;
     }
     .kf-arrow-switch {
-      width: 2.2rem;
-      height: 2.2rem;
+      position: absolute;
+      top: 0.2rem;
+      right: 0;
+      width: 2rem;
+      height: 2rem;
       padding: 0;
       border: 0;
       border-radius: 0.4rem;
@@ -81,12 +85,8 @@
   `;
   document.head.appendChild(style);
 
-  const switches = document.createElement('div');
-  switches.className = 'kf-arrow-switches';
-  switches.append(
-    createSwitch('1', 'instantBest', 'kf-arrow-switch-best', 'Show best move arrow instantly'),
-    createSwitch('2', 'secondBest', 'kf-arrow-switch-second', 'Show second best move arrow'),
-  );
+  const bestSwitch = createSwitch('1', 'instantBest', 'kf-arrow-switch-best', 'Show best move arrow instantly');
+  const secondSwitch = createSwitch('2', 'secondBest', 'kf-arrow-switch-second', 'Show second best move arrow');
 
   let drawnBestKey = null;
   let drawnSecondKey = '';
@@ -116,7 +116,8 @@
     button.title = title;
     button.setAttribute('aria-label', title);
     button.setAttribute('aria-pressed', String(options[option]));
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
       options[option] = !options[option];
       button.setAttribute('aria-pressed', String(options[option]));
       saveOptions();
@@ -300,12 +301,11 @@
     }
   }
 
-  // chess.com rebuilds the options bar now and then, so the switches are put back when needed.
+  // chess.com rebuilds the engine lines now and then, so the switches are put back when needed.
   function updateSwitches() {
-    const settingsButton = document.querySelector('.analysis-options-right button[aria-label="Settings"]');
-    if (settingsButton && switches.nextElementSibling !== settingsButton) {
-      settingsButton.before(switches);
-    }
+    const [bestRow, secondRow] = document.querySelectorAll('.engine-line-component');
+    if (bestRow && bestSwitch.parentElement !== bestRow) bestRow.append(bestSwitch);
+    if (secondRow && secondSwitch.parentElement !== secondRow) secondRow.append(secondSwitch);
   }
 
   function update() {
