@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chess.com Engine Arrows
 // @namespace    chesscom-engine-arrows
-// @version      1.0
+// @version      1.1
 // @description  Shows the best move arrow in analysis as soon as the engine has a first result and adds an arrow for the second best move that gets thinner and more transparent the worse the move is, like on Lichess. Both can be switched on and off next to the engine settings.
 // @match        https://www.chess.com/analysis*
 // @match        https://www.chess.com/*/analysis*
@@ -53,6 +53,7 @@
       display: flex;
       flex-shrink: 0;
       gap: 2px;
+      margin-left: 0.6rem;
     }
     .kf-arrow-switch {
       width: 2.2rem;
