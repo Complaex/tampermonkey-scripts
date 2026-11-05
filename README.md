@@ -1,6 +1,8 @@
 # Tampermonkey Scripts
 
-Userscripts for [chess.com](https://www.chess.com). Install [Tampermonkey](https://www.tampermonkey.net/), then click an install link below.
+Userscripts for different websites. Install [Tampermonkey](https://www.tampermonkey.net/), then click an install link below.
+
+## chess.com
 
 | Script | What it does | Install |
 |---|---|---|
@@ -11,7 +13,7 @@ Userscripts for [chess.com](https://www.chess.com). Install [Tampermonkey](https
 
 Tampermonkey checks these links for new versions and updates the scripts by itself.
 
-## Notes
+### Notes
 
 - All scripts only change what you see in your own browser.
 - Second Best Arrow runs in analysis only, not in live games. It needs the engine lines turned on and at least two lines.
