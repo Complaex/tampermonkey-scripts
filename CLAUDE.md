@@ -35,4 +35,5 @@ Userscripts for different websites. Tampermonkey installs them from the raw file
 ## chess.com
 
 - Scripts only change what the user sees. Never add anything that helps during a live game: engine features stay on `/analysis`.
-- Second Best Arrow reads `board.game`, so it needs `@sandbox JavaScript`. It expects the interface in English.
+- Engine Arrows reads `board.game`, so it needs `@sandbox JavaScript`. It expects the interface in English.
+- Engine Arrows counts as one feature: its best and second best arrows read the same engine lines and share one pair of switches.
