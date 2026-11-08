@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Chess.com Analysis Button
 // @namespace    chesscom-analysis-button
-// @version      1.5
-// @description  Adds a button next to each game in your game lists and next to Game Review in the game over window that opens the regular analysis directly (not Game Review).
+// @version      1.6
+// @description  Adds a button next to each game in your game lists and below Game Review in the game over window that opens the regular analysis directly (not Game Review).
 // @match        https://www.chess.com/games/archive*
 // @match        https://www.chess.com/*/games/archive*
 // @match        https://www.chess.com/home*
@@ -24,6 +24,7 @@
 
   const BUTTON_CLASS = 'kf-analysis-button';
   const MODAL_BUTTON_CLASS = 'kf-analysis-modal-button';
+  const MODAL_BUTTON_TEXT = 'Analysis';
   const TOOLTIP_TEXT = 'Analyze';
   const ICON = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"
@@ -50,28 +51,10 @@
       align-items: center;
     }
 
-    /* In the game over window the button sits in one row with Game Review. */
-    .game-over-modal-shell-buttons:has(> .${MODAL_BUTTON_CLASS}) {
-      display: grid;
-      grid-template-columns: 1fr auto;
-    }
-    .game-over-modal-shell-buttons:has(> .${MODAL_BUTTON_CLASS}) > * {
-      grid-column: 1 / -1;
-    }
-    .game-over-modal-shell-buttons > [data-kf-review] {
-      grid-column: 1;
-    }
-    .game-over-modal-shell-buttons > .${MODAL_BUTTON_CLASS} {
-      grid-column: 2;
-      aspect-ratio: 1;
-      height: auto;
-      padding: 0;
-    }
     .${MODAL_BUTTON_CLASS} svg {
       display: block;
-      width: 2.4rem;
-      height: 2.4rem;
-      margin: auto;
+      width: 100%;
+      height: 100%;
     }
   `;
   document.head.appendChild(style);
@@ -161,20 +144,24 @@
     let button = buttons.querySelector(':scope > .' + MODAL_BUTTON_CLASS);
     if (!button) {
       button = document.createElement('a');
-      // Same look as chess.com's buttons, as the secondary instead of the primary variant.
-      button.className = `${MODAL_BUTTON_CLASS} ${reviewButton.className.replace(/primary/g, 'secondary')}`;
+      // Same size as Game Review, as chess.com's secondary instead of the primary variant.
+      button.className = `${MODAL_BUTTON_CLASS} ${reviewButton.className.replace(/cc-button-primary/g, 'cc-button-secondary')}`;
       for (const name of ['data-size', 'data-align']) {
         if (reviewButton.hasAttribute(name)) button.setAttribute(name, reviewButton.getAttribute(name));
       }
       button.setAttribute('data-variant', 'secondary');
       // Opens like Game Review does, in a new tab if it does.
       if (reviewButton.target) button.target = reviewButton.target;
-      button.innerHTML = ICON;
-      button.setAttribute('aria-label', TOOLTIP_TEXT);
-      button.addEventListener('mouseenter', () => showTooltip(button));
-      button.addEventListener('mouseleave', () => hideTooltip(button));
+
+      // The icon wrapper takes the classes of Game Review's icon, so size and spacing match.
+      const icon = document.createElement('span');
+      const reviewIcon = reviewButton.querySelector('[class*="cc-icon-glyph"]');
+      if (reviewIcon) icon.className = reviewIcon.className;
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = ICON;
+      button.append(icon, MODAL_BUTTON_TEXT);
     }
-    reviewButton.setAttribute('data-kf-review', '');
+    // Directly below Game Review, above the buttons for the next game.
     if (button.previousElementSibling !== reviewButton) reviewButton.after(button);
     if (button.getAttribute('href') !== url) button.setAttribute('href', url);
   }
