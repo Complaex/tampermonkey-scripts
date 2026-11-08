@@ -1,14 +1,18 @@
 // ==UserScript==
 // @name         Chess.com Analysis Button
 // @namespace    chesscom-analysis-button
-// @version      1.4
-// @description  Adds a button next to each game in your game lists that opens the regular analysis directly (not Game Review).
+// @version      1.5
+// @description  Adds a button next to each game in your game lists and next to Game Review in the game over window that opens the regular analysis directly (not Game Review).
 // @match        https://www.chess.com/games/archive*
 // @match        https://www.chess.com/*/games/archive*
 // @match        https://www.chess.com/home*
 // @match        https://www.chess.com/*/home*
 // @match        https://www.chess.com/member/*
 // @match        https://www.chess.com/*/member/*
+// @match        https://www.chess.com/game/*
+// @match        https://www.chess.com/*/game/*
+// @match        https://www.chess.com/play/*
+// @match        https://www.chess.com/*/play/*
 // @run-at       document-idle
 // @grant        none
 // @updateURL    https://raw.githubusercontent.com/Complaex/tampermonkey-scripts/main/chesscom-analysis-button.user.js
@@ -19,6 +23,7 @@
   'use strict';
 
   const BUTTON_CLASS = 'kf-analysis-button';
+  const MODAL_BUTTON_CLASS = 'kf-analysis-modal-button';
   const TOOLTIP_TEXT = 'Analyze';
   const ICON = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"
@@ -43,6 +48,30 @@
     .game-history-games-actions:has(.${BUTTON_CLASS}) {
       gap: 0.4rem;
       align-items: center;
+    }
+
+    /* In the game over window the button sits in one row with Game Review. */
+    .game-over-modal-shell-buttons:has(> .${MODAL_BUTTON_CLASS}) {
+      display: grid;
+      grid-template-columns: 1fr auto;
+    }
+    .game-over-modal-shell-buttons:has(> .${MODAL_BUTTON_CLASS}) > * {
+      grid-column: 1 / -1;
+    }
+    .game-over-modal-shell-buttons > [data-kf-review] {
+      grid-column: 1;
+    }
+    .game-over-modal-shell-buttons > .${MODAL_BUTTON_CLASS} {
+      grid-column: 2;
+      aspect-ratio: 1;
+      height: auto;
+      padding: 0;
+    }
+    .${MODAL_BUTTON_CLASS} svg {
+      display: block;
+      width: 2.4rem;
+      height: 2.4rem;
+      margin: auto;
     }
   `;
   document.head.appendChild(style);
@@ -110,15 +139,60 @@
     }
   }
 
+  // The game comes from the Game Review link, or from the page address if there is no link.
+  function modalAnalysisUrl(reviewButton) {
+    const source = `${reviewButton.getAttribute('href') || ''} ${location.pathname}`;
+    const match = source.match(/\/game\/(?:(live|daily)\/)?(\d+)/);
+    if (!match) return null;
+
+    const board = document.querySelector('wc-chess-board');
+    const flip = board && board.classList.contains('flipped');
+    return `/analysis/game/${match[1] || 'live'}/${match[2]}/analysis${flip ? '?flip=true' : ''}`;
+  }
+
+  function addModalButton() {
+    const buttons = document.querySelector('.game-over-modal-shell-buttons');
+    const reviewButton = buttons && buttons.querySelector(':scope > a, :scope > button');
+    if (!reviewButton || reviewButton.classList.contains(MODAL_BUTTON_CLASS)) return;
+
+    const url = modalAnalysisUrl(reviewButton);
+    if (!url) return;
+
+    let button = buttons.querySelector(':scope > .' + MODAL_BUTTON_CLASS);
+    if (!button) {
+      button = document.createElement('a');
+      // Same look as chess.com's buttons, as the secondary instead of the primary variant.
+      button.className = `${MODAL_BUTTON_CLASS} ${reviewButton.className.replace(/primary/g, 'secondary')}`;
+      for (const name of ['data-size', 'data-align']) {
+        if (reviewButton.hasAttribute(name)) button.setAttribute(name, reviewButton.getAttribute(name));
+      }
+      button.setAttribute('data-variant', 'secondary');
+      // Opens like Game Review does, in a new tab if it does.
+      if (reviewButton.target) button.target = reviewButton.target;
+      button.innerHTML = ICON;
+      button.setAttribute('aria-label', TOOLTIP_TEXT);
+      button.addEventListener('mouseenter', () => showTooltip(button));
+      button.addEventListener('mouseleave', () => hideTooltip(button));
+    }
+    reviewButton.setAttribute('data-kf-review', '');
+    if (button.previousElementSibling !== reviewButton) reviewButton.after(button);
+    if (button.getAttribute('href') !== url) button.setAttribute('href', url);
+  }
+
+  function update() {
+    addButtons();
+    addModalButton();
+  }
+
   let scheduled = false;
   new MutationObserver(() => {
     if (scheduled) return;
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
-      addButtons();
+      update();
     });
   }).observe(document.body, { childList: true, subtree: true });
 
-  addButtons();
+  update();
 })();
