@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chess.com Analysis Button
 // @namespace    chesscom-analysis-button
-// @version      1.6
+// @version      1.7
 // @description  Adds a button next to each game in your game lists and below Game Review in the game over window that opens the regular analysis directly (not Game Review).
 // @match        https://www.chess.com/games/archive*
 // @match        https://www.chess.com/*/games/archive*
@@ -160,6 +160,10 @@
       icon.setAttribute('aria-hidden', 'true');
       icon.innerHTML = ICON;
       button.append(icon, MODAL_BUTTON_TEXT);
+
+      // chess.com reuses the window for the next game, so the link is checked again right before the click.
+      button.addEventListener('pointerdown', addModalButton);
+      button.addEventListener('focus', addModalButton);
     }
     // Directly below Game Review, above the buttons for the next game.
     if (button.previousElementSibling !== reviewButton) reviewButton.after(button);
@@ -171,6 +175,7 @@
     addModalButton();
   }
 
+  // Links can change without new elements, for example Game Review after the next game.
   let scheduled = false;
   new MutationObserver(() => {
     if (scheduled) return;
@@ -179,7 +184,7 @@
       scheduled = false;
       update();
     });
-  }).observe(document.body, { childList: true, subtree: true });
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
 
   update();
 })();
