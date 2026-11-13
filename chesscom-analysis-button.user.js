@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chess.com Analysis Button
 // @namespace    chesscom-analysis-button
-// @version      1.7
+// @version      1.8
 // @description  Adds a button next to each game in your game lists and below Game Review in the game over window that opens the regular analysis directly (not Game Review).
 // @match        https://www.chess.com/games/archive*
 // @match        https://www.chess.com/*/games/archive*
@@ -122,7 +122,8 @@
     }
   }
 
-  // The game comes from the Game Review link, or from the page address if there is no link.
+  // The game comes from the Game Review link as it is at that moment, or from the page address
+  // if there is no link.
   function modalAnalysisUrl(reviewButton) {
     const source = `${reviewButton.getAttribute('href') || ''} ${location.pathname}`;
     const match = source.match(/\/game\/(?:(live|daily)\/)?(\d+)/);
@@ -133,9 +134,15 @@
     return `/analysis/game/${match[1] || 'live'}/${match[2]}/analysis${flip ? '?flip=true' : ''}`;
   }
 
-  function addModalButton() {
-    const buttons = document.querySelector('.game-over-modal-shell-buttons');
-    const reviewButton = buttons && buttons.querySelector(':scope > a, :scope > button');
+  // An older game over window can still be in the page, so every one gets its own button.
+  function addModalButtons() {
+    for (const buttons of document.querySelectorAll('.game-over-modal-shell-buttons')) {
+      addModalButton(buttons);
+    }
+  }
+
+  function addModalButton(buttons) {
+    const reviewButton = buttons.querySelector(':scope > a, :scope > button');
     if (!reviewButton || reviewButton.classList.contains(MODAL_BUTTON_CLASS)) return;
 
     const url = modalAnalysisUrl(reviewButton);
@@ -161,10 +168,18 @@
       icon.innerHTML = ICON;
       button.append(icon, MODAL_BUTTON_TEXT);
 
-      // chess.com reuses the window for the next game, so the link is checked again right before the click.
-      button.addEventListener('pointerdown', addModalButton);
-      button.addEventListener('focus', addModalButton);
+      // chess.com reuses the window for the next game, so the link is worked out again on the click.
+      button.addEventListener('pointerdown', () => addModalButton(button.parentElement));
+      button.addEventListener('click', (event) => {
+        const review = button.parentElement.querySelector(`:scope > a:not(.${MODAL_BUTTON_CLASS}), :scope > button`);
+        const freshUrl = review && modalAnalysisUrl(review);
+        if (!freshUrl) return;
+        event.preventDefault();
+        if (button.target === '_blank') window.open(freshUrl, '_blank');
+        else location.assign(freshUrl);
+      });
     }
+    reviewButton.setAttribute('data-kf-review', '');
     // Directly below Game Review, above the buttons for the next game.
     if (button.previousElementSibling !== reviewButton) reviewButton.after(button);
     if (button.getAttribute('href') !== url) button.setAttribute('href', url);
@@ -172,7 +187,7 @@
 
   function update() {
     addButtons();
-    addModalButton();
+    addModalButtons();
   }
 
   // Links can change without new elements, for example Game Review after the next game.
